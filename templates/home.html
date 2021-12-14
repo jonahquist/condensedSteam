@@ -1,7 +1,12 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-    <div>
-        {% for game in gamer.getMostPlayed() %}
-    </div>
+    <form action="steamid" method="get">
+        <label for="steamIDResponse">Enter your Steam Id</label>
+        <input type="text" id="steamIDResponse" name="steamIDResponse" />
+        <input type="submit" value="go">
+    </form>
+    {% if prompt %}
+    <div class='formtitle'>{{prompt}}</div>
+    {% endif %}
 {% endblock %}

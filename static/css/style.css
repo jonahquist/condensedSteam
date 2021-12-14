@@ -1,0 +1,21 @@
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+h1 {
+    font-size:calc(27px + 2.5vw);
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+}
+
+.summary {
+    width: 400px;
+    height: 600px;
+    padding: 20px;
+    border-radius: 20px;
+    color: #F0FFFF;
+    background-color: #4682B4;
+}

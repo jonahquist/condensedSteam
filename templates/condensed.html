@@ -1,0 +1,14 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <div><h1 style="display:flex;justify-content:center">{{user.personaname}}'s gaming summary<h1></div>
+    <div class="container">
+        <div class="summary">
+            <h2>New Friends</h2>
+            {% for friend in user.getNewFriends() %}
+                <img src={{friend.avatar}}></img>
+                <p>{{friend.personaname}}: {{friend.frienddate}}</p>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

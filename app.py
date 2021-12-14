@@ -1,23 +1,48 @@
 from flask import Flask
 from flask import current_app as app
-from flask import render_template
+from flask import render_template, request
 import urllib.parse, urllib.request, urllib.error, json
 from config import steam_api_key, rawg_api_key
+import datetime
 
+TEMPLATES_AUTO_RELOAD = True
 app = Flask(__name__)
 
 @app.route("/")
 def home():
     """home page"""
+    app.logger.info("In home")
     return render_template(
         'home.html'
     )
+
+@app.route("/steamid")
+def steamid_response_handler():
+    steamid = request.args.get('steamIDResponse')
+    app.logger.info(steamid)
+    try:
+        user = MainUser(steamid)
+        try:
+            return render_template('condensed.html',
+                steamid=steamid,
+                user=user
+                )
+        except:
+            app.logger.info("Failed to Load Condensed")
+    except:
+            return render_template('home.html',
+                prompt="Oh no! Steam ID you input was invalid. Double Check that your profile is public!"
+                )
+    
+if __name__ == "__main__":
+    app.run(host="localhost", port=8080, debug=True)
 
 def pretty(obj):
     return json.dumps(obj, sort_keys=True, indent=2)
 
 def safeget(url):
     try:
+        app.logger.info(url)
         return urllib.request.urlopen(url)
     except urllib.error.URLError as e:
         if hasattr(e, "code"):
@@ -45,7 +70,9 @@ def RAWG_REST(*args, **kwargs):
 class User:
     
     def __init__(self, steamid: str):
+        app.logger.info("Accessing Player Summary...")
         self.playerSummaryJSON = STEAM_REST("ISteamUser", "GetPlayerSummaries", "v0002", steamids = steamid)
+        app.logger.info(self.playerSummaryJSON)
         
         self.steamid=steamid
         self.mainuser = False
@@ -62,7 +89,13 @@ class FriendUser(User):
         User.__init__(self, steamid = steamid)
         
         self.friendsince = friendsince
+        
+        timestamp = datetime.datetime.fromtimestamp(self.friendsince)
+        self.frienddate = timestamp.strftime('%Y-%m-%d %H:%M:%S')
 
+    def getFriendSince(self):
+        return self.friendsince
+    
     def __repr__(self):
         return f"{self.personaname} friends since {self.friendsince}"
     
@@ -73,26 +106,37 @@ class MainUser(User):
         
         self.mainuser = True
         
+        app.logger.info("Accessing Friends List...")
         self.friendListJSON = STEAM_REST("ISteamUser", "GetFriendList", "v0001", steamid = steamid, relationship = "friend")
-        self.ownedGamesJSON = STEAM_REST("IPlayerService", "GetOwnedGames", "v0001", steamid = steamid, include_appinfo = True)
+        app.logger.info(self.friendListJSON)
         
-        self.games = []
+        app.logger.info("Accessing Owned Games List...")
+        self.ownedGamesJSON = STEAM_REST("IPlayerService", "GetOwnedGames", "v0001", steamid = steamid, include_appinfo = 1)
+        app.logger.info(self.ownedGamesJSON)
+        
+        app.logger.info("Finished API Requests...")
+        
+        #GAMES CODE
+        #self.games = []
         #for game in self.ownedGamesJSON["response"]["games"]:
             #self.games.append(Game(game))
             
-        for i in range(20):
-            self.games.append(Game(self.ownedGamesJSON["response"]["games"][i]))
+        #for i in range(20):
+            #self.games.append(Game(self.ownedGamesJSON["response"]["games"][i]))
             
         #self.games = [Game[x] for x in self.ownedGamesJSON["response"]["games"]]
-        self.game_count = self.ownedGamesJSON["response"]["game_count"]
+        #self.game_count = self.ownedGamesJSON["response"]["game_count"]
+        #app.logger.info("!!Games Compiled!!")      
+        #self.rawgGames = []
+        
         
         self.friends = []
         for user in self.friendListJSON["friendslist"]["friends"]:
             self.friends.append(FriendUser(user["steamid"], user["friend_since"]))
         #self.friends = [User[x] for x in self.friendListJSON["friendslist"]["friends"]]
         
-        self.rawgGames = []
-
+        app.logger.info("success~")
+    
     def getMostPlayed(self):
         mostPlayed = []
         mostPlayed = sorted(self.games, key=Game.getPlaytime, reverse=True)
@@ -116,6 +160,7 @@ class MainUser(User):
         for friend in self.friends:
             if (friend.friendsince > 1609488000):
                 newFriends.append(friend)
+        newFriends = sorted(newFriends, key=FriendUser.getFriendSince, reverse = True)
         return newFriends
 
 class Game:
@@ -129,12 +174,14 @@ class Game:
             self.playtime_2weeks = gameJson['playtime_2weeks']
         else:
             self.playtime_2weeks = 0
+         
+    def __repr__(self):
+        return f"{self.name}"         
             
     def getPlaytime(self):
         return self.playtime_forever
     
-    def __repr__(self):
-        return f"{self.name}"
+
     
     def getGenres(self):
         if (self.checkRawg()):
@@ -158,40 +205,3 @@ class Game:
             return False
         else:
             return True
-
-
-
-gamer = MainUser("76561197960434622")
-#mostPlayed = gamer.getMostPlayed()
-#for i in range(5):
-    #print(f"{mostPlayed[i].name} {mostPlayed[i].playtime_forever}")
-
-print(gamer.getNewFriends())
-"""gamer = MainUser("76561197960434622")
-
-print("----Steam----")
-
-falsecount = 0
-truecount = 0
-
-for game in gamer.games:
-    boolin = True
-    rawg = RAWG_REST("games", search=game.name)["results"][0]["name"]
-    if (game.name == rawg):
-        boolin = True
-        truecount += 1 
-    else:
-        boolin = False
-        falsecount += 1
-    print(f"{boolin} - STEAM: {game.name} - RAWG: {rawg}")
-
-print(falsecount)
-print(truecount)
-
-for i in range(5):
-    name = gamer.games[i].name
-    search = RAWG_REST("games", search=name)
-    print(search["results"][0]["name"])
-#rawgtest = RAWG_REST("games", search="Halo", ordering="name")
-#print(pretty(rawgtest))
-"""
