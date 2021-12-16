@@ -5,10 +5,40 @@
     <div class="container">
         <div class="summary">
             <h2>New Friends</h2>
-            {% for friend in user.getNewFriends() %}
-                <img src={{friend.avatar}}></img>
-                <p>{{friend.personaname}}: {{friend.frienddate}}</p>
-            {% endfor %}
+            <div class="friend-container">
+                {% for friend in user.getNewFriends() %}
+                    <div class="friend">
+                        <div class="friender-container">
+                            <img class="friend-img" src={{friend.avatar}}></img>
+                            <div>
+                                <p style="margin-bottom:8px;margin-top:10px;font-size:19px">{{friend.personaname}}</p><p style="margin-bottom:0px;margin-top:0px">Friend Since:</p><p style="margin-top:0px">{{friend.frienddate}}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="summary">
+            <h2>Most Played Genres</h2>
+            {% set genres = user.getMostGenres() %}
+            {% for genre in genres %}
+                <p>{{genre[0]}}: {{genre[1]}} games</p>
+            {% endfor%}
+        </div>
+        <div class="summary">
+            <h2>Most Played Games</h2>
+            <div class="friend-container">
+                {% for game in user.getMostPlayed() %}
+                    <div class="game">
+                        <div class="gamer-container">
+                            <img class="gamer-img" src={{game.img_logo_url}}></img>
+                            <div>
+                                <p style="margin-bottom:8px;margin-top:10px;font-size:19px">{{game.name}}</p><p>{{game.hours}} hours</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 {% endblock %}

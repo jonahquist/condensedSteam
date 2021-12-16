@@ -47,7 +47,6 @@ def safeget(url):
     except urllib.error.URLError as e:
         if hasattr(e, "code"):
             print(e.code)
-        print("AHHH it didnt work")
     return None
 
 def STEAM_REST(service, request, version, **kwargs):
@@ -91,7 +90,7 @@ class FriendUser(User):
         self.friendsince = friendsince
         
         timestamp = datetime.datetime.fromtimestamp(self.friendsince)
-        self.frienddate = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        self.frienddate = timestamp.strftime('%Y-%m-%d')
 
     def getFriendSince(self):
         return self.friendsince
@@ -117,17 +116,17 @@ class MainUser(User):
         app.logger.info("Finished API Requests...")
         
         #GAMES CODE
-        #self.games = []
-        #for game in self.ownedGamesJSON["response"]["games"]:
-            #self.games.append(Game(game))
+        self.games = []
+        for game in self.ownedGamesJSON["response"]["games"]:
+            self.games.append(Game(game))
             
         #for i in range(20):
             #self.games.append(Game(self.ownedGamesJSON["response"]["games"][i]))
             
         #self.games = [Game[x] for x in self.ownedGamesJSON["response"]["games"]]
-        #self.game_count = self.ownedGamesJSON["response"]["game_count"]
-        #app.logger.info("!!Games Compiled!!")      
-        #self.rawgGames = []
+        self.game_count = self.ownedGamesJSON["response"]["game_count"]
+        app.logger.info("!!Games Compiled!!")      
+        self.rawgGames = []
         
         
         self.friends = []
@@ -153,6 +152,7 @@ class MainUser(User):
                 self.rawgGames.append(game)
             for genre in game.getGenres():
                 genres[genre] = genres.get(genre, 0) + 1
+        genres = sorted(genres.items(), key=lambda x: x[1], reverse=True)
         return genres
             
     def getNewFriends(self):
@@ -167,9 +167,11 @@ class Game:
     
     def __init__(self, gameJson):
         self.appid = gameJson['appid']
-        self.img_logo_url = gameJson['img_logo_url']
+        self.img_logo_url = f"http://media.steampowered.com/steamcommunity/public/images/apps/{self.appid}/{gameJson['img_logo_url']}.jpg"
+        app.logger.info(f"{self.img_logo_url}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
         self.name = gameJson['name']
         self.playtime_forever = gameJson['playtime_forever']
+        self.hours = int(self.playtime_forever / 60)
         if "playtime_2weeks" in gameJson:
             self.playtime_2weeks = gameJson['playtime_2weeks']
         else:
@@ -193,15 +195,24 @@ class Game:
             return []
     
     def getRawg(self):
-        self.tentativerawg = RAWG_REST("games", search=self.name)["results"][0]
-        self.tentativerawg["confirmed"] = self.compareRawg()
-        print("checking rawg...")
-    
+        print(f"checking rawg...{self.name}")
+        rest = RAWG_REST("games", search=self.name)
+        print(f"rest complete for {self.name}")
+        if (self.name == "tModLoader"):
+            print(rest)
+        if (rest['count'] != 0):
+            self.tentativerawg = rest["results"][0]
+            self.tentativerawg["confirmed"] = self.compareRawg()
+        else:
+            print(self.name)
+            self.tentativerawg = {}
+            self.tentativerawg['confirmed'] = False;
+            
     def compareRawg(self):
         return (self.tentativerawg["name"] == self.name)
-    
+        
     def checkRawg(self):
-        if (self.tentativerawg == None or self.tentativerawg["confirmed"] == False):
+        if (self.tentativerawg == None or self.tentativerawg['confirmed'] == False):
             return False
         else:
             return True
